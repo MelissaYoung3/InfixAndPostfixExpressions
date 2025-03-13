@@ -1,0 +1,83 @@
+#include <iostream>
+#include <stack>
+#include <string>
+#include <sstream>
+#include <cctype>
+#include <stdexcept>
+#include <fstream>
+
+class PostFixEvaluator {
+private:
+    std::string postfix;
+    double result;
+
+    bool isOperator(const std::string& token) {
+        return token == "+" || token == "-" || token == "*" || token == "/";
+    }
+
+public:
+    PostFixEvaluator() : result(0) {}
+
+    PostFixEvaluator(const std::string& expr) : postfix(expr), result(0) {}
+
+    void setPostfix(const std::string& expr) {
+        postfix = expr;
+    }
+
+    double getResult() const {
+        return result;
+    }
+
+    void evaluate() {
+        std::stack<double> stack;
+        std::istringstream iss(postfix);
+        std::string token;
+
+        while (iss >> token) {
+            if (std::isdigit(token[0])) {
+                stack.push(std::stod(token));
+            } else if (isOperator(token)) {
+                if (stack.size() < 2) throw std::runtime_error("Insufficient operands");
+                double op2 = stack.top(); stack.pop();
+                double op1 = stack.top(); stack.pop();
+
+                if (token == "+") stack.push(op1 + op2);
+                else if (token == "-") stack.push(op1 - op2);
+                else if (token == "*") stack.push(op1 * op2);
+                else if (token == "/") {
+                    if (op2 == 0) throw std::runtime_error("Division by zero");
+                    stack.push(op1 / op2);
+                }
+            } else {
+                throw std::runtime_error("Invalid token encountered: " + token);
+            }
+        }
+
+        if (stack.size() != 1) throw std::runtime_error("Malformed expression: too many operands left");
+        result = stack.top();
+    }
+};
+
+int main() {
+    std::ifstream inputFile("RpnData.txt");
+    if (!inputFile.is_open()) {
+        std::cerr << "Failed to open RpnData.txt" << std::endl;
+        return 1;
+    }
+
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        try {
+            PostFixEvaluator evaluator(line);
+            evaluator.evaluate();
+            std::cout << "Postfix: " << line << " => Result: " << evaluator.getResult() << std::endl;
+        } catch (const std::exception& e) {
+            std::cout << "Postfix: " << line << " => Error: " << e.what() << std::endl;
+        }
+    }
+
+    inputFile.close();
+    return 0;
+}
+
+
